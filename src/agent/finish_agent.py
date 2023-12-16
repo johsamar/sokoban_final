@@ -1,11 +1,12 @@
 from mesa import Agent
 
 class FinishAgent(Agent):
-    def __init__(self,unique_id,model):
+    def __init__(self,unique_id,model, tag = ""):
         super().__init__(unique_id,model)
         self.image = "assets/finish.png"
         self.color = "green"
         self.layer = 1
+        self.tag = tag
 
     def step(self) -> None:
         return None

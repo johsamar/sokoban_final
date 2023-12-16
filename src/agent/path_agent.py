@@ -2,13 +2,14 @@ from mesa import Agent
 from helpers.constants import Constans
 
 class PathAgent(Agent):
-    def __init__(self,unique_id,model):
+    def __init__(self,unique_id,model, tag = ""):
         super().__init__(unique_id,model)
         self.color = "white"
         self.layer = 0
         self.heuristic = None
         self.image = "assets/floor.jpg"
         self.text = "" 
+        self.tag = tag
 
     def set_state(self, state):
         self.text = str(state)

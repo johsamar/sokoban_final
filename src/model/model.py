@@ -12,7 +12,7 @@ from helpers.load_agents import load_agents, calculate_all_heristic
 from helpers.constants import Constans
 import numpy as np
 from utils.config import get_index
-
+from helpers.game_state import GameState
 class SokobanModel(Model):
 
     def __init__(self, algorithm=None, heuristic=None, filename=None):
@@ -50,6 +50,13 @@ class SokobanModel(Model):
         # Obtener la posición de la meta, y el robot
         robot_agent = next(agent for agent in self.schedule.agents if isinstance(agent, RobotAgent))
         goal_agent = next(agent for agent in self.schedule.agents if isinstance(agent, FinishAgent))
+        # Obtener todos los agentes necesarios
+        all_robots = [agent for agent in self.schedule.agents if isinstance(agent, RobotAgent)]
+        all_goals = [agent for agent in self.schedule.agents if isinstance(agent, FinishAgent)]
+        all_boxes = [agent for agent in self.schedule.agents if isinstance(agent, BoxAgent)]
+
+        # Busquedas de cajas
+
 
         #Define la posición de la meta
         self.goal_position = goal_agent.pos
@@ -68,6 +75,8 @@ class SokobanModel(Model):
         self.priority_queue_a.put((0, 0, "nodo0"))
         self.stack.append((self.start_position, 0))
         self.visited_dic["nodo0"] = self.start_position
+
+        self.bfs_search()
 
     def set_filename(self, new_filename):
         self.filename = new_filename
@@ -369,3 +378,70 @@ class SokobanModel(Model):
         floorAgent = self.grid.get_cell_list_contents([current])[0]
         #obtener el floorAgent de la posición actual
         floorAgent.set_state(len(self.visited))
+
+    # ------------------------------------------------- busquedas de cajas ----------------------------------------------
+    # def is_goal_state(self):
+    #     # Verifica si todas las cajas están en la meta
+    #     return all(agent in self.grid_state and 'M' in self.grid_state[agent] for agent in self.agent_positions)
+
+    # def generate_next_states(self):
+    #     # Genera todos los posibles estados hijos aplicando movimientos válidos
+    #     next_states = []
+
+    #     for agent_id, position in self.agent_positions.items():
+    #         x, y = position
+
+    #         # Prioridad de mover primero a la caja más a la izquierda
+    #         cajas_izquierda = sorted(
+    #             [(box_id, box_position) for box_id, box_position in self.agent_positions.items() if 'C-b' in self.grid_state[box_id]],
+    #             key=lambda box: box[1][0]
+    #         )
+
+    #         for box_id, box_position in cajas_izquierda:
+    #             box_x, box_y = box_position
+
+    #             # Prioridad de mover abajo, arriba, izquierda y derecha
+    #             for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
+    #                 new_agent_positions = self.agent_positions.copy()
+    #                 new_box_position = (box_x + dx, box_y + dy)
+
+    #                 if self.is_valid_move(new_box_position):
+    #                     new_agent_positions[agent_id] = new_box_position
+
+    #                     new_state = copy.deepcopy(self)
+    #                     new_state.agent_positions = new_agent_positions
+    #                     new_state.grid_state[agent_id] = ''
+    #                     new_state.grid_state[box_id] = 'C-b'
+
+    #                     next_states.append(new_state)
+
+    #     return next_states
+    
+    # def is_valid_move(self, new_position):
+    #     # Verifica si el movimiento es válido, por ejemplo, no chocar con rocas o salir de la grilla
+    #     x, y = new_position
+    #     return 0 <= x < self.model.width and 0 <= y < self.model.height and self.grid_state[x][y] != 'R'
+
+    # Función BFS modificada para trabajar con múltiples cajas
+    def bfs_search(self):
+        initial_state = GameState(self)
+        # visited_states = set()
+
+        # queue = Queue()
+        # queue.put(initial_state)
+        # visited_states.add(tuple(tuple(row) for row in initial_state.grid_state))  # Usamos una tupla para que sea hashable
+
+        # while not queue.empty():
+        #     current_state = queue.get()
+        #     print("current_state: " + str(current_state))
+
+        #     if current_state.is_goal_state():
+        #         return current_state
+
+        #     for next_state in current_state.generate_next_states():
+        #         next_state_tuple = tuple(tuple(row) for row in next_state.grid_state)
+        #         if next_state_tuple not in visited_states:
+        #             visited_states.add(next_state_tuple)
+        #             queue.put(next_state)
+
+        # return None  # No se encontró una solución

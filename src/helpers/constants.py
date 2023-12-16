@@ -14,3 +14,8 @@ class Constans:
 
     MANHATTAN = "Manhattan"
     EUCLIDEAN = "Euclidiana"
+
+    TOP = "top"
+    BOTTOM = "bottom"
+    LEFT = "left"
+    RIGHT = "right"

@@ -4,11 +4,12 @@ import numpy as np
 import os
 
 class RockAgent(Agent):
-    def __init__(self,unique_id,model):
+    def __init__(self,unique_id,model, tag = ""):
         super().__init__(unique_id,model)
         self.image = "assets/wall.jpg"
         self.color = "black"
         self.layer = 1
+        self.tag = tag
 
     def step(self) -> None:
         return None
