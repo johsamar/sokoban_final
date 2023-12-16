@@ -6,6 +6,8 @@ from agent.finish_agent import FinishAgent
 from mesa import Model
 from utils.write_file import write_files
 from helpers.constants import Constans
+from queue import Queue
+import copy
 
 class GameState:
     def __init__(self, model: Model):
@@ -13,23 +15,27 @@ class GameState:
         self.model = model
         self.all_goals = [agent for agent in self.model.schedule.agents if isinstance(agent, FinishAgent)]
         self.all_boxes = [agent for agent in self.model.schedule.agents if isinstance(agent, BoxAgent)]
-        self.visited = {
-            box.unique_id: [] for box in self.all_boxes
-        }
-        self.save_game_state("states/node_1.txt")
-        next_states = self.generate_next_states()
-        print("Estados hijos:", next_states)
+        # self.visited = {
+        #     box.unique_id: [] for box in self.all_boxes
+        # }
+        self.visited = []
+        self.number_child = 0
+        path = self.bfs_search()
+        print("Camino:", path)
+        #Reinicia las cajas a su posición inicial
+        self.move_boxes(self.initial_state)
+        
 
     # Verifica si todas las cajas están en la meta
-    def is_goal_state(self):
-        grids_goal = [self.model.grid.get_cell_list_contents([goal.pos]) for goal in self.goals]        
+    def is_goal_state(self, current_state):
         count = 0
-        for grid in grids_goal:
-            if len(grid) == 0 or len(grid) == 1 or len(grid) == 2:
-                return False            
-            if any(isinstance(x, BoxAgent) for x in grid):
-                count += 1
-        return count == len(grids_goal)        
+        for goal in self.all_goals:
+            for key, value in current_state.items():
+                if goal.pos == value:
+                    count += 1
+        if count == len(self.all_goals):
+            return True
+        return False
 
 
     def save_game_state(self, filename):
@@ -88,13 +94,53 @@ class GameState:
         }
         for neighbor in neighbors:
             # Obtener el agente que se encuentra en la posición vecina y verificar que no sea una roca 
-            size_agents = len(self.model.grid.get_cell_list_contents([neighbor]))
+            size_agents = len(self.model.grid.get_cell_list_contents([neighbor]))            
             
-            if neighbor not in self.visited[box_id]:
-                if(size_agents > 1 and (isinstance(self.model.grid.get_cell_list_contents([neighbor])[1], RockAgent) or isinstance(self.model.grid.get_cell_list_contents([neighbor])[1], BoxAgent))):
-                    # print("Vecino roca: ", neighbor)
-                    pass
-                else:
-                    movements.append(neighbor)
+            if(size_agents > 1 and (isinstance(self.model.grid.get_cell_list_contents([neighbor])[1], RockAgent) or isinstance(self.model.grid.get_cell_list_contents([neighbor])[1], BoxAgent))):
+                # print("Vecino roca: ", neighbor)
+                pass
+            else:
+                movements.append(neighbor)
         return movements, ortogonal_movs
+
+    def bfs_search(self):     
+        self.initial_state = {
+            box.unique_id: box.pos for box in self.all_boxes
+        }
+        queue = Queue()
+        queue.put((self.initial_state, None))
+        print("Estados visitados:", self.visited)
+        while not queue.empty():            
+            print("-----------------------------------")
+            current_state, parent_state = queue.get()
+            print("Estado actual:", current_state)
+            self.move_boxes(current_state)
+            self.visited.append(current_state)
+            
+            self.number_child += 1
+            self.save_game_state(f"states/node_{self.number_child}.txt")
+            
+            if self.is_goal_state(current_state):
+                print("Estado meta encontrado:", current_state)
+                path = [current_state]
+                while parent_state is not None:
+                    path.append(parent_state[0])
+                    parent_state = parent_state[1]
+                return path[::-1]
+
+            for next_state in self.generate_next_states():
+                print("Estado hijo:", next_state)
+                new_state = current_state.copy()
+                new_state[next_state[0]] = next_state[1]
+                if new_state not in self.visited:
+                    queue.put((new_state, (current_state, parent_state)))
+                    print("Estados visitados:", self.visited)
+                
+        return None
+    
+    def move_boxes(self, state):
+        print("Moviendo cajas...")
+        for key, value in state.items():
+            box = self.model.schedule.agents[key]
+            self.model.grid.move_agent(box, value)          
 
