@@ -53,4 +53,27 @@ def calculate_all_heristic(selected_heuristic, schedule, goal_agent):
             print("Heuristica de", agent.pos, ":", heuristic)
             agent.heuristic = heuristic
 
-        
+def get_all_heristics(schedule, goal_agents):
+    heuristic_dict = {}
+    for agent in schedule.agents: 
+        if isinstance(agent, PathAgent):
+            heuristic = 0
+            for goal_agent in goal_agents:
+                agent_heuristic = calculate_heuristic(Constans.MANHATTAN, agent.pos, goal_agent.pos)
+                heuristic += agent_heuristic
+            # print("Heuristica de", agent.pos, ":", heuristic)
+            heuristic_dict[agent.pos] = heuristic
+    return heuristic_dict
+
+def get_heristics_for_goals(schedule, goal_agents):
+    heuristic_dict = {}
+    for goal_agent in goal_agents:
+        heuristic = {}
+        for agent in schedule.agents: 
+            if isinstance(agent, PathAgent):
+                agent_heuristic = calculate_heuristic(Constans.MANHATTAN, agent.pos, goal_agent.pos)
+                heuristic[agent.pos] = agent_heuristic
+                # print("Heuristica de", agent.pos, ":", agent_heuristic)
+        # print("Heuristica de", goal_agent.pos, ":", heuristic)
+        heuristic_dict[goal_agent.pos] = heuristic
+    return heuristic_dict

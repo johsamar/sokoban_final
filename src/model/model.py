@@ -51,18 +51,17 @@ class SokobanModel(Model):
         robot_agent = next(agent for agent in self.schedule.agents if isinstance(agent, RobotAgent))
         goal_agent = next(agent for agent in self.schedule.agents if isinstance(agent, FinishAgent))
         # Obtener todos los agentes necesarios
-        all_robots = [agent for agent in self.schedule.agents if isinstance(agent, RobotAgent)]
-        all_goals = [agent for agent in self.schedule.agents if isinstance(agent, FinishAgent)]
-        all_boxes = [agent for agent in self.schedule.agents if isinstance(agent, BoxAgent)]
+             
 
+        game_state = GameState(self)
+
+        # self.boxes_path = []
+        self.boxes_path = game_state.path
         # Busquedas de cajas
-
-
         #Define la posición de la meta
         self.goal_position = goal_agent.pos
 
-        calculate_all_heristic(self.heuristic, self.schedule, goal_agent)
-
+        # calculate_all_heristic(self.heuristic, self.schedule, goal_agent)
         # Obtener la posición actual del robot
         self.start_position = robot_agent.pos
 
@@ -93,32 +92,9 @@ class SokobanModel(Model):
             print()
 
     def step(self) -> None:        
-        # Realizar la búsqueda en anchura
-        if self.algorithm == Constans.BFS and not self.finished:
-            self.bfs()
-        if self.algorithm == Constans.UNIFORM_COST and not self.finished:
-            self.costo_uniforme()
-        elif self.algorithm == Constans.DFS and not self.finished:
-            # self.dfs()
-            self.dfs2()
-        elif self.algorithm == Constans.BEAM_SEARCH and not self.finished:
-            self.beam_search(beam_width=4)
-        elif self.algorithm == Constans.A_STAR and not self.finished:
-            self.a_star()
-        if not self.finished:
-            self.schedule.step()
-        if self.finished:
-            if self.found:
-                # maximo = self.suma_nodos.max()
-                # index = get_index(self.suma_nodos, maximo)
-                # print("La columna con mas nodos es: " + str(index) + " con "+ str(maximo))
-                print("Se encontró la meta")
-                print("orden de visitados: ", self.vsited_list)
-                print("Cantidad de nodos visitados: ", len(self.visited))
-                path = list(reversed(self.get_final_path(self.start_position, self.goal_position)))
-                print("path", path )
-            else:
-                print("No se encontró la meta")
+        for path in self.boxes_path:
+            print(f"Camino: {path}")
+            #self.schedule.step()
 
     def bfs(self):        
         if not self.queue.empty():
@@ -379,69 +355,5 @@ class SokobanModel(Model):
         #obtener el floorAgent de la posición actual
         floorAgent.set_state(len(self.visited))
 
-    # ------------------------------------------------- busquedas de cajas ----------------------------------------------
-    # def is_goal_state(self):
-    #     # Verifica si todas las cajas están en la meta
-    #     return all(agent in self.grid_state and 'M' in self.grid_state[agent] for agent in self.agent_positions)
-
-    # def generate_next_states(self):
-    #     # Genera todos los posibles estados hijos aplicando movimientos válidos
-    #     next_states = []
-
-    #     for agent_id, position in self.agent_positions.items():
-    #         x, y = position
-
-    #         # Prioridad de mover primero a la caja más a la izquierda
-    #         cajas_izquierda = sorted(
-    #             [(box_id, box_position) for box_id, box_position in self.agent_positions.items() if 'C-b' in self.grid_state[box_id]],
-    #             key=lambda box: box[1][0]
-    #         )
-
-    #         for box_id, box_position in cajas_izquierda:
-    #             box_x, box_y = box_position
-
-    #             # Prioridad de mover abajo, arriba, izquierda y derecha
-    #             for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-    #                 new_agent_positions = self.agent_positions.copy()
-    #                 new_box_position = (box_x + dx, box_y + dy)
-
-    #                 if self.is_valid_move(new_box_position):
-    #                     new_agent_positions[agent_id] = new_box_position
-
-    #                     new_state = copy.deepcopy(self)
-    #                     new_state.agent_positions = new_agent_positions
-    #                     new_state.grid_state[agent_id] = ''
-    #                     new_state.grid_state[box_id] = 'C-b'
-
-    #                     next_states.append(new_state)
-
-    #     return next_states
-    
-    # def is_valid_move(self, new_position):
-    #     # Verifica si el movimiento es válido, por ejemplo, no chocar con rocas o salir de la grilla
-    #     x, y = new_position
-    #     return 0 <= x < self.model.width and 0 <= y < self.model.height and self.grid_state[x][y] != 'R'
-
-    # Función BFS modificada para trabajar con múltiples cajas
     def bfs_search(self):
-        initial_state = GameState(self)
-        # visited_states = set()
-
-        # queue = Queue()
-        # queue.put(initial_state)
-        # visited_states.add(tuple(tuple(row) for row in initial_state.grid_state))  # Usamos una tupla para que sea hashable
-
-        # while not queue.empty():
-        #     current_state = queue.get()
-        #     print("current_state: " + str(current_state))
-
-        #     if current_state.is_goal_state():
-        #         return current_state
-
-        #     for next_state in current_state.generate_next_states():
-        #         next_state_tuple = tuple(tuple(row) for row in next_state.grid_state)
-        #         if next_state_tuple not in visited_states:
-        #             visited_states.add(next_state_tuple)
-        #             queue.put(next_state)
-
-        # return None  # No se encontró una solución
+        pass
