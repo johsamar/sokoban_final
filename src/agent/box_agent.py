@@ -10,13 +10,9 @@ class BoxAgent(Agent):
         self.color = "yellow"
         self.layer = 1
         self.tag = tag
+        self.new_pos = None
 
     def step(self) -> None:
-        return None
-
-
-    def give_money(self):
-        return None
-
-    def move(self) -> None:
-        return None
+        if self.new_pos is not None:
+            self.model.grid.move_agent(self, self.new_pos)
+            self.new_pos = None

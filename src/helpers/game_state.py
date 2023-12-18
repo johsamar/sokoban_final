@@ -5,21 +5,27 @@ from agent.box_agent import BoxAgent
 from agent.finish_agent import FinishAgent
 from mesa import Model
 from utils.write_file import write_files
+from utils.delete_files import delete_files
 from helpers.constants import Constans
 from queue import Queue, PriorityQueue
-from helpers.load_agents import get_all_heristics, get_heristics_for_goals
+from helpers.load_agents import get_all_heristics, get_heristics_for_goals, calculate_heristic
 
 class GameState:
     def __init__(self, model: Model):
         print("GameState: Inicializando")
+        delete_files()
         self.model = model
         self.all_goals = [agent for agent in self.model.schedule.agents if isinstance(agent, FinishAgent)]
         self.all_boxes = [agent for agent in self.model.schedule.agents if isinstance(agent, BoxAgent)]
+        self.all_robots = [agent for agent in self.model.schedule.agents if isinstance(agent, RobotAgent)]
         self.box_goal = {}
+        self.robot_box = {}
         self.heuristic_general = get_all_heristics(self.model.schedule, self.all_goals)
         self.heuristic = get_heristics_for_goals(self.model.schedule, self.all_goals)
+        self.heuristic_boxes = get_heristics_for_goals(self.model.schedule, self.all_boxes)
         # print("Heuristica:", self.heurictics2)
         self.assign_goal_box_less_heuristic()
+        self.assign_box_robot_less_heuristic()
         self.visited = []
         self.number_child = 0
         # self.path = self.bfs_search()
@@ -27,7 +33,7 @@ class GameState:
         # self.path = []
         print("Camino:", self.path)
         #Reinicia las cajas a su posición inicial
-        # self.move_boxes(self.initial_state)
+        self.move_boxes(self.initial_state)
 
     def assign_goal_box_less_heuristic(self):
         # Asigna la caja con menor heurística a la meta más cercana
@@ -43,16 +49,43 @@ class GameState:
             # heuristics_goals_box.sort(key=lambda x: x[1])
             # self.box_goal[box.unique_id] = calculte
         assigned_goal.sort(key=lambda x: x[0])
-        print("Asignación de cajas a metas:", assigned_goal)
+        print("Asignación de robots a cajas:", assigned_goal)
         for goal in assigned_goal:
             if goal[1] not in used_goals and goal[2] not in used_boxes:
                 self.box_goal[goal[2]] = goal[1]
                 used_boxes.append(goal[2])
                 used_goals.append(goal[1])
-        print("Asignación de cajas a metas:", self.box_goal)
+        print("Asignación de robots a cajas:", self.box_goal)
         
+    def assign_box_robot_less_heuristic(self):
+        # Asigna la caja con menor heurística a la meta más cercana
+        if len(self.all_robots) > 1:
+            assigned_box = []
+            used_boxes = []
+            used_robots = []
+            for robot in self.all_robots:       
+                heuristics_box_robot = []
+                for box in self.all_boxes:
+                        heuristic = self.heuristic_boxes[box.pos][robot.pos]
+                        heuristics_box_robot.append((box.pos, heuristic))
+                        assigned_box.append((heuristic, {box.unique_id: box.pos}, robot.unique_id))
+                # heuristics_goals_box.sort(key=lambda x: x[1])
+                # self.box_goal[box.unique_id] = calculte
+            assigned_box.sort(key=lambda x: x[0])
+            print("Asignación de cajas a metas:", assigned_box)
+            for box in assigned_box:
+                if box[1] not in used_boxes and box[2] not in used_robots:
+                    self.robot_box[box[2]] = box[1]
+                    used_robots.append(box[2])
+                    used_boxes.append(box[1])
 
-    # Verifica si todas las cajas están en la meta
+            for robot in self.all_robots:
+                # robot.box_target = self.robot_box[robot.unique_id]
+                key, value = self.robot_box[robot.unique_id].popitem()
+                robot.box_target = (key, value)
+            print("Asignación de cajas a metas:", self.robot_box)
+        # Verifica si todas las cajas están en la meta
+        
     def is_goal_state(self, current_state):
         count = 0
         for goal in self.all_goals:
@@ -188,6 +221,7 @@ class GameState:
             box.unique_id: box.pos for box in self.all_boxes
         }
         self.initial_state["nodo"] = self.number_child
+        self.initial_state["move"] = None
         queue = PriorityQueue()
 
         node_zero = f"nodo_{self.number_child}"
@@ -251,3 +285,63 @@ class GameState:
             # if counter == 5:
             #     break
         return None
+
+
+    def a_star(self, agent, target, model):
+        number_child = 1
+
+        agent.initial_state = agent.pos
+        
+
+        heuristics_for_target = calculate_heristic(model.schedule, target)
+        
+        queue = PriorityQueue()
+
+        node_zero = f"nodo_{number_child}"
+        queue.put((0, 0, node_zero))
+        
+        visited_dic = {
+            node_zero: (agent.initial_state, None)
+        }
+        visited = []
+        path = None
+        while not queue.empty():        
+            t_cost, _, id_current = queue.get()
+            current = visited_dic[id_current]
+
+            if current[0] == target:
+                path = [current[0]]
+                parent_state = current[1]
+                while parent_state is not None:
+                    state = visited_dic[parent_state]
+                    path.append(state[0])
+                    parent_state = state[1]
+                return path[::-1]
+                
+
+            if current not in visited:
+                print("current:", current)
+                visited.append(current)
+                # añadir el orden de visitados
+                # self.increase_node(current)
+
+                neighbors = model.grid.get_neighborhood(current[0], moore=False, include_center=False)
+                for neighbor in neighbors:
+                    contents = model.grid.get_cell_list_contents([neighbor])
+                    is_rock = any(isinstance(obj, RockAgent) for obj in contents)
+                    is_box = any(isinstance(obj, BoxAgent) for obj in contents)
+                    is_robot = any(isinstance(obj, RobotAgent) for obj in contents)
+
+                    if not is_rock and not is_box and not is_robot and neighbor not in visited:
+                        number_child += 1
+                        movement_cost = self.calculate_cost(neighbor)
+                        heuristic = heuristics_for_target[neighbor]
+                        total_cost = t_cost + heuristic
+                        id_nodo = f"nodo_{number_child}"
+                        visited_dic[id_nodo] = (neighbor, id_current)
+                        queue.put((total_cost, t_cost + movement_cost, id_nodo ))
+        
+    
+    def calculate_cost(self, position):
+        # En este ejemplo, el costo de movimiento es 10 para cualquier dirección
+        return 10

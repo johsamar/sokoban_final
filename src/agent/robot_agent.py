@@ -1,5 +1,6 @@
 from mesa import Agent
 from helpers.constants import Constans
+from queue import PriorityQueue
 
 
 class RobotAgent(Agent):
@@ -9,30 +10,39 @@ class RobotAgent(Agent):
         self.color = "grey"
         self.layer = 1
         self.tag = tag
-    
+        self.priority_queue_a = PriorityQueue()
+        self.priority_queue_a.put((0, 0, "nodo0"))
+        self.box_target = None        
+        self.movement = []
+
+    def define_path(self, target):
+        pass
+
     def step(self):
-        if self.model.algorithm == Constans.BFS:
-            next_position = self.model.queue.queue[0]
-            self.model.grid.move_agent(self, next_position[0])
-
-        elif self.model.algorithm == Constans.DFS:
-            next_position = self.model.stack[-1]
-            self.model.grid.move_agent(self, next_position[0])
-
-        elif self.model.algorithm == Constans.UNIFORM_COST:
-            next_position = self.model.priority_queue.queue[0]
-            print("Next position: ", next_position)
-            print("Visited dic: ", self.model.visited_dic)
-            self.model.grid.move_agent(self, self.model.visited_dic[next_position[1]])
-
-        elif self.model.algorithm == Constans.BEAM_SEARCH:
-            next_position = self.model.priority_queue.queue[0]
-            self.model.grid.move_agent(self, self.model.visited_dic[next_position[1]])
-
-        elif self.model.algorithm == Constans.A_STAR:
-            next_position = self.model.priority_queue_a.queue[0]
-            self.model.grid.move_agent(self, self.model.visited_dic[next_position[2]])
-
-            
-       
-        
+        print("Robot step")
+        print(f"id: {self.unique_id}")
+        print("step", self.model.node_step)
+        print("box target: ", self.box_target)
+        print("posicion actual: ", self.pos)
+        if self.pos == self.model.node_step["move"][1]:
+            id_box = self.model.node_step["move"][0]
+            box = self.model.get_agent_by_id(id_box)
+            box_pos = box.pos
+            box.new_pos = self.model.node_step[id_box]
+            self.model.grid.move_agent(self, box_pos)
+            self.model.counter += 1
+        #verificar si el paso tiene movimeinto y si existe move en el diccionario                
+        elif len(self.movement) > 0:
+            print("movement", self.movement)
+            next_step = self.movement.pop(0)
+            print("next step", next_step)
+            self.model.grid.move_agent(self, next_step)
+        elif self.model.node_step["move"] is not None:
+                box_id = self.model.node_step["move"][0]
+                if box_id == self.box_target[0]:
+                    target = self.model.node_step["move"][1]
+                    print("target", target)
+                    path = self.model.game_state.a_star(self, target, self.model)
+                    self.movement = path
+                    print("Path", path)
+         

@@ -38,7 +38,7 @@ def agent_portrayal(agent):
 # algoritmo_seleccionado, filename, heuristica_seleccionada =  vantana.getValores()
 # ----------------------------------------------
 
-filename = os.path.join(PROJECT_PATH, "maps/map000.txt")
+filename = os.path.join(PROJECT_PATH, "maps/map1.txt")
 algoritmo_seleccionado = Constans.DFS
 heuristica_seleccionada = Constans.MANHATTAN
 
@@ -59,11 +59,6 @@ server = ModularServer(
     }
 )
 server.port = 8521
-print("Algoritmo en el modelo:", server.model.algorithm)
-print("Heuristica en el modelo:", server.model.heuristic)
-print("Mapa con coordenadas:")
-server.model.print_grid()
-# print("Prueba de heuristica:", server.model.calculate_heuristic((1, 5), (3, 5)))
 server.launch()
 
 
