@@ -10,6 +10,7 @@ from helpers.constants import Constans
 from queue import Queue, PriorityQueue
 from helpers.load_agents import get_all_heristics, get_heristics_for_goals, calculate_heristic
 
+
 class GameState:
     def __init__(self, model: Model):
         print("GameState: Inicializando")
@@ -28,8 +29,8 @@ class GameState:
         self.assign_box_robot_less_heuristic()
         self.visited = []
         self.number_child = 0
-        # self.path = self.bfs_search()
-        self.path = self.beam_search()
+        self.path = self.bfs_search()
+        #self.path = self.beam_search()
         # self.path = []
         print("Camino:", self.path)
         #Reinicia las cajas a su posición inicial
@@ -203,7 +204,8 @@ class GameState:
                 if new_state not in self.visited:
                     queue.put((new_state, (current_state, parent_state)))
                     # print("Estados visitados:", self.visited)
-                
+                if new_state in self.visited:
+                    print("REPETIDO!",  "En el nodo: ",self.number_child)
         return None
     
     def move_boxes(self, state):
@@ -280,6 +282,8 @@ class GameState:
                     queue.put((heuristic_1, node_id))
                     # queue.put((next_state[3], node_id))
                     # self.visited.append(new_state)
+                #if new_state in self.visited:
+               
             # print("Cola:", queue.queue)
             # counter += 1
             # if counter == 5:
@@ -341,7 +345,43 @@ class GameState:
                         visited_dic[id_nodo] = (neighbor, id_current)
                         queue.put((total_cost, t_cost + movement_cost, id_nodo ))
         
+    def hill_climbing(self):
+        self.initial_state = {
+            box.unique_id: box.pos for box in self.all_boxes
+        }
+        current_state = self.initial_state
+        self.visited = []
+        self.number_child = 0
+        while True:
+            print("-----------------------------------")
+            print("Estado actual:", current_state)
+            self.move_boxes(current_state)
+            self.visited.append(current_state)
+            
+            self.number_child += 1
+            self.save_game_state(f"states/node_{self.number_child}.txt")
+            
+            if self.is_goal_state(current_state):
+                print("Estado meta encontrado:", current_state)
+                return current_state
+
+            neighbors = self.generate_next_states()
+            if not neighbors:
+                print("No hay más vecinos. No se encontró una solución.")
+                return None  # No hay solución
+
+            # Calcula la heurística para cada vecino
+            heuristics_for_neighbors = calculate_heristic(self.model.schedule, neighbors)
+            neighbors.sort(key=lambda state: heuristics_for_neighbors[state], reverse=True)
+            
+            print("Vecinos:", neighbors)
+            if heuristics_for_neighbors[neighbors[0]] <= self.calculate_heuristic(current_state):
+                print("No se encontró un mejor vecino. Estado final:", current_state)
+                return current_state  # No se encontró un mejor vecino
+            current_state = neighbors[0]
+            print("Nodos visitados:", self.visited)"
     
     def calculate_cost(self, position):
         # En este ejemplo, el costo de movimiento es 10 para cualquier dirección
         return 10
+    
